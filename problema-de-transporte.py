@@ -116,7 +116,10 @@ def criarGrafoBasicas(modelo, oferta, demanda):
     return grafo
 
 def arestaParaModelo(aresta):
-    return [aresta[0][1], aresta[1][1]]
+    if aresta[0][0] == 'a':
+        return [aresta[0][1], aresta[1][1]]
+    else:
+        return [aresta[1][1], aresta[0][1]]
 
 def cicloFormatarij(ciclo):
     cicloFormatoij = []
@@ -124,7 +127,6 @@ def cicloFormatarij(ciclo):
         cicloFormatoij += [arestaParaModelo(aresta)]
     return cicloFormatoij
 
-################################## precisa ajeitar pq esta dando bug no i:0 j:2 no exemplo
 def formatarCiclo(ciclo, arestaInicial):
     cicloFormatoij = cicloFormatarij(ciclo)
     cicloFormatado = []
@@ -139,7 +141,26 @@ def formatarCiclo(ciclo, arestaInicial):
             break
         cicloFormatado += [aresta]
     return cicloFormatado
-    
+
+def testeCiclo(modelo, ciclo):
+    alterna = 1
+    custo = 0
+    for aresta in ciclo:
+        custo += modelo[int(aresta[0])-1][int(aresta[1])-1][0] * alterna
+        alterna *= -1
+    return custo <= 0
+
+def achaValorPivoteamento(modelo, ciclo):
+    alterna = 1
+    menorNegativo = float('inf')
+    posicao = []
+    for aresta in ciclo:
+        if alterna == -1 and modelo[int(aresta[0])-1][int(aresta[1])-1][0] < menorNegativo:
+            menorNegativo = modelo[int(aresta[0])-1][int(aresta[1])-1][0]
+            posicao.append(int(aresta[0])-1)
+            posicao.append(int(aresta[1])-1)
+        alterna *= -1
+    return menorNegativo, posicao
 # custos = [2,5,3,7,4,1]
 # oferta = [25,25]
 # demanda = [15,15,20]
@@ -171,8 +192,8 @@ for i in range(len(oferta)):
             print("j: ", j)
             print("Ciclo: ")
             print(ciclo)
-
-            # testa se o ciclo é negativo
-            # acha o valor que vai ser usado no pivoteamento
-            # pivoteamento
-            print("")
+            print('Custo do ciclo: ', testeCiclo(modeloTeste, ciclo))
+            if testeCiclo(modeloTeste, ciclo): # teste ciclo retorna True se o custo do ciclo for negativo       
+                valorPivoteamento, posicao = achaValorPivoteamento(modeloTeste, ciclo)
+                print('Valor: ', valorPivoteamento, '\n', 'Posicao: ', posicao)
+                # pivoteamento
