@@ -61,8 +61,6 @@ def buscaProfundidade(grafo, inicio):
   return visitados
 
 # funcao sem especificar posicao de plotagem
-# falta colocar os pesos nas arestas mas nem sei se precisa pq talvez só seja usado para achar o ciclo
-# talvez uma boa solucao seja colocar no grafo os vertices apenas se a aresta nao seja -1 -> foi feito isso na funcao criarGrafoBasicas()
 
 # def criarGrafo(modelo, oferta, demanda):
 #     grafo = nx.Graph()
@@ -111,8 +109,8 @@ def criarGrafoBasicas(modelo, oferta, demanda):
             # verificar se o valor é positivo no modelo -> variavel basica
             if modelo[i-1][j-1][0] != -1:
                 grafo.add_edge("a" + str(i), "b" + str(j))
-    nx.draw(grafo, pos=pos, with_labels=True, node_size=1200, node_color='red')
-    plt.show()
+    # nx.draw(grafo, pos=pos, with_labels=True, node_size=1200, node_color='red')
+    # plt.show()
     return grafo
 
 def arestaParaModelo(aresta):
@@ -146,21 +144,38 @@ def testeCiclo(modelo, ciclo):
     alterna = 1
     custo = 0
     for aresta in ciclo:
-        custo += modelo[int(aresta[0])-1][int(aresta[1])-1][0] * alterna
+        custo += modelo[int(aresta[0])-1][int(aresta[1])-1][1] * alterna
         alterna *= -1
     return custo <= 0
 
 def achaValorPivoteamento(modelo, ciclo):
     alterna = 1
     menorNegativo = float('inf')
-    posicao = []
+    posicao = [0, 0]
     for aresta in ciclo:
         if alterna == -1 and modelo[int(aresta[0])-1][int(aresta[1])-1][0] < menorNegativo:
             menorNegativo = modelo[int(aresta[0])-1][int(aresta[1])-1][0]
-            posicao.append(int(aresta[0])-1)
-            posicao.append(int(aresta[1])-1)
+            posicao[0] = (int(aresta[0])-1)
+            posicao[1] = (int(aresta[1])-1)
         alterna *= -1
     return menorNegativo, posicao
+
+def pivoteamento(modelo, ciclo, valor, posicao):
+    alterna = -1
+    modelo[int(ciclo[0][0])-1][int(ciclo[0][1])-1][0] = valor
+    for aresta in ciclo[1:]:
+        modelo[int(aresta[0])-1][int(aresta[1])-1][0] += valor * alterna
+        alterna *= -1
+    modelo[posicao[0]][posicao[1]][0] = -1
+    
+def custoRelativo(modelo):
+    custoRelativo = 0
+    for i in range(len(modelo)):
+        for j in range(len(modelo[i])):
+            if modelo[i][j][0] > 0:
+                custoRelativo += modelo[i][j][0] * modelo[i][j][1]
+    return custoRelativo
+    
 # custos = [2,5,3,7,4,1]
 # oferta = [25,25]
 # demanda = [15,15,20]
@@ -170,30 +185,38 @@ oferta = [3,7,5]
 demanda = [4,3,4,4]
 
 modelo = inicializaModelo(custos, oferta, demanda)
-# imprime(modelo)
 
 cantoNoroeste(modelo, oferta, demanda)
-# print("Aplicada a regra do canto noroeste: \n")
+imprime(modelo)
 
 # display(criarGrafo(modelo, oferta, demanda))
 display(criarGrafoBasicas(modelo, oferta, demanda))
 
-for i in range(len(oferta)):
-    for j in range(len(demanda)):
-        if modelo[i][j][0] == -1:
-            modeloTeste = copy.deepcopy(modelo)
-            modeloTeste[i][j][0] = 1
-            # acha o ciclo da variável não básica
-            ciclo = nx.find_cycle(criarGrafoBasicas(modeloTeste, oferta, demanda))
-            ciclo = formatarCiclo(ciclo, [str(i+1), str(j+1)])
-            print("Modelo: ")
-            imprime(modeloTeste)
-            print("i: ", i)
-            print("j: ", j)
-            print("Ciclo: ")
-            print(ciclo)
-            print('Custo do ciclo: ', testeCiclo(modeloTeste, ciclo))
-            if testeCiclo(modeloTeste, ciclo): # teste ciclo retorna True se o custo do ciclo for negativo       
-                valorPivoteamento, posicao = achaValorPivoteamento(modeloTeste, ciclo)
-                print('Valor: ', valorPivoteamento, '\n', 'Posicao: ', posicao)
-                # pivoteamento
+flag = True # continua verificando
+while(flag):
+    flag = False
+    for i in range(len(oferta)):
+        for j in range(len(demanda)):
+            if modelo[i][j][0] == -1:
+                modeloTeste = copy.deepcopy(modelo)
+                modeloTeste[i][j][0] = 1
+                # acha o ciclo da variável não básica
+                ciclo = nx.find_cycle(criarGrafoBasicas(modeloTeste, oferta, demanda))
+                ciclo = formatarCiclo(ciclo, [str(i+1), str(j+1)])
+                print("Modelo: ")
+                imprime(modeloTeste)
+                print("i: ", i)
+                print("j: ", j)
+                print("Ciclo: ")
+                print(ciclo)
+                print('Custo do ciclo: ', testeCiclo(modeloTeste, ciclo))
+                if testeCiclo(modeloTeste, ciclo): # teste ciclo retorna True se o custo do ciclo for negativo       
+                    valorPivoteamento, posicao = achaValorPivoteamento(modeloTeste, ciclo)
+                    # print('Valor: ', valorPivoteamento, '\n', 'Posicao: ', posicao)
+                    pivoteamento(modelo, ciclo, valorPivoteamento, posicao)
+                    flag = True
+                    print('Modelo depois do pivoteamento: ')
+                    imprime(modelo)
+                    print('Custo Relativo: ', custoRelativo(modelo))
+
+print('Custo Relativo: ', custoRelativo(modelo))
