@@ -113,6 +113,71 @@ def criarGrafoBasicas(modelo, oferta, demanda):
     # plt.show()
     return grafo
 
+def achaCiclo(graph):
+    stack = []
+    visited = []
+    ciclo = []
+
+    # Adicione o vértice inicial à pilha e à lista de vértices visitados.
+    stack.append(next(iter(graph)))
+    visited.append(stack[-1])
+
+    curr_vertex = ''
+    while stack:
+        # Remova o vértice do topo da pilha.
+        parent = curr_vertex 
+        curr_vertex = stack[-1]
+        flag = True
+
+        # Para cada vértice vizinho do vértice atual que ainda não tenha sido visitado:
+        neighbors = list(graph.neighbors(curr_vertex))
+        # print('Vertice atual: ', curr_vertex)
+        # print('Parent: ', parent)
+        # print('Visited: ', visited)
+        # print('Stack: ', stack)
+        for neighbor in neighbors:         
+            if neighbor != parent and neighbor in visited:
+                # Se o vértice vizinho já foi visitado anteriormente, então um ciclo foi encontrado.
+                # Retorne a pilha como a lista de vértices que formam o ciclo.
+                while True:
+                    if stack:
+                        ciclo.insert(0, stack.pop())
+                        if ciclo[0] == neighbor:
+                            return ciclo
+        for neighbor in neighbors:     
+            if neighbor not in visited:
+                # Adicione o vértice vizinho à pilha e à lista de vértices visitados.
+                stack.append(neighbor)
+                visited.append(neighbor)
+                flag = False
+                break  
+        if flag:       
+            for neighbor in neighbors:
+                if neighbor == parent and neighbor in stack:
+                    # Adicione o vértice vizinho à pilha e à lista de vértices visitados.
+                    stack.pop()
+                    visited.append(neighbor)  
+                    continue        
+
+
+    # Se a pilha estiver vazia e nenhum ciclo for encontrado, retorne uma lista vazia.
+    return []
+
+def verticeParaAresta(ciclo):
+    cicloEmArestas = []
+    ciclo = list(ciclo)
+    anterior = ''
+    primeiraIteracao = True
+    for vertice in ciclo:
+        if primeiraIteracao:
+            anterior = vertice
+            primeiraIteracao = False
+            continue
+        cicloEmArestas.append((anterior, vertice))
+        anterior = vertice
+    cicloEmArestas.append((ciclo[-1], ciclo[0]))
+    return cicloEmArestas
+
 def arestaParaModelo(aresta):
     if aresta[0][0] == 'a':
         return [aresta[0][1], aresta[1][1]]
@@ -146,7 +211,7 @@ def testeCiclo(modelo, ciclo):
     for aresta in ciclo:
         custo += modelo[int(aresta[0])-1][int(aresta[1])-1][1] * alterna
         alterna *= -1
-    return custo <= 0
+    return custo < 0
 
 def achaValorPivoteamento(modelo, ciclo):
     alterna = 1
@@ -180,9 +245,13 @@ def custoRelativo(modelo):
 # oferta = [25,25]
 # demanda = [15,15,20]
 
-custos = [2,2,2,1,10,8,5,4,7,6,6,8]
-oferta = [3,7,5]
-demanda = [4,3,4,4]
+# custos = [2,2,2,1,10,8,5,4,7,6,6,8]
+# oferta = [3,7,5]
+# demanda = [4,3,4,4]
+
+custos = [2, 3, 4, 3, 5, 6, 4, 3, 5, 6, 6, 8]
+oferta = [4, 5, 15]
+demanda = [5, 6, 7, 6]
 
 modelo = inicializaModelo(custos, oferta, demanda)
 
@@ -202,20 +271,23 @@ while(flag):
                 modeloTeste[i][j][0] = 1
                 # acha o ciclo da variável não básica
                 ciclo = nx.find_cycle(criarGrafoBasicas(modeloTeste, oferta, demanda))
+                # ciclo = achaCiclo(criarGrafoBasicas(modeloTeste, oferta, demanda))
+                # ciclo = verticeParaAresta(ciclo)
                 ciclo = formatarCiclo(ciclo, [str(i+1), str(j+1)])
-                print("Modelo: ")
-                imprime(modeloTeste)
-                print("i: ", i)
-                print("j: ", j)
-                print("Ciclo: ")
                 print(ciclo)
-                print('Custo do ciclo: ', testeCiclo(modeloTeste, ciclo))
+                # print("Modelo: ")
+                # imprime(modeloTeste)
+                # print("i: ", i)
+                # print("j: ", j)
+                # print("Ciclo: ")
+                # print(ciclo)
+                # print('Custo do ciclo: ', testeCiclo(modeloTeste, ciclo))
                 if testeCiclo(modeloTeste, ciclo): # teste ciclo retorna True se o custo do ciclo for negativo       
                     valorPivoteamento, posicao = achaValorPivoteamento(modeloTeste, ciclo)
                     # print('Valor: ', valorPivoteamento, '\n', 'Posicao: ', posicao)
                     pivoteamento(modelo, ciclo, valorPivoteamento, posicao)
                     flag = True
-                    print('Modelo depois do pivoteamento: ')
+                    # print('Modelo depois do pivoteamento: ')
                     imprime(modelo)
                     print('Custo Relativo: ', custoRelativo(modelo))
 
